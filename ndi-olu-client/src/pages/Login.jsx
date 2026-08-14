@@ -60,7 +60,11 @@ function Login() {
 
             // Give the user a moment to see the success message
             setTimeout(() => {
-                navigate("/");
+                navigate(
+                    data.user?.role === "worker"
+                        ? "/worker-profile"
+                        : "/customer-dashboard",
+                );
             }, 500);
         } catch (error) {
             console.error("Login error:", error);
@@ -97,23 +101,16 @@ function Login() {
                 throw new Error(data.message || "Google login failed.");
             }
 
-            // Save JWT if your Google endpoint returns one
-            if (data.token) {
-                localStorage.setItem("ndi_olu_token", data.token);
-            }
-
-            // Save user
-            if (data.user) {
-                localStorage.setItem(
-                    "ndi_olu_user",
-                    JSON.stringify(data.user),
-                );
-            }
+            login(data);
 
             setMessage("Google login successful. Welcome back!");
 
             setTimeout(() => {
-                navigate("/");
+                navigate(
+                    data.user?.role === "worker"
+                        ? "/worker-profile"
+                        : "/customer-dashboard",
+                );
             }, 500);
         } catch (error) {
             console.error("Google login error:", error);

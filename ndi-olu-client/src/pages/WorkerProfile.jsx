@@ -8,12 +8,12 @@ import {
   ShieldCheck,
   Star,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import Footer from "../components/layout/Footer";
 import Navbar from "../components/layout/Navbar";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
-import { workers } from "../data/workers";
 
 const profileExtras = {
   electrician: {
@@ -56,8 +56,43 @@ const profileExtras = {
 
 function WorkerProfile() {
   const { workerId } = useParams();
+  const [worker, setWorker] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const worker = workers.find((item) => item.id === workerId);
+  useEffect(() => {
+    async function loadWorker() {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/workers/${workerId}`,
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Worker not found");
+        }
+
+        setWorker(data.worker);
+      } catch (error) {
+        console.error("Worker profile error:", error);
+        setWorker(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadWorker();
+  }, [workerId]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-ndi-sand text-ndi-ink">
+        <Navbar />
+        <div className="flex min-h-80 items-center justify-center">
+          <div className="h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-ndi-forest" />
+        </div>
+      </main>
+    );
+  }
 
   if (!worker) {
     return <Navigate to="/find-workers" replace />;
@@ -88,11 +123,13 @@ function WorkerProfile() {
         <div className="grid gap-8 lg:grid-cols-[1fr_340px] lg:items-start">
           <div className="rounded-ndi-panel border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              <div
-                className={`grid h-20 w-20 shrink-0 place-items-center rounded-2xl text-xl font-extrabold ${worker.avatarClass}`}
-              >
-                {worker.initials}
-              </div>
+              {worker.profile_image_url ? (
+                <img src={worker.profile_image_url} alt="" className="h-20 w-20 shrink-0 rounded-2xl object-cover" />
+              ) : (
+                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-xl font-extrabold text-ndi-forest">
+                  {worker.initials}
+                </div>
+              )}
 
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-3">

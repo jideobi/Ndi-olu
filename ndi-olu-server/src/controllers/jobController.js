@@ -253,3 +253,36 @@ export async function getCustomerJobById(req, res) {
     });
   }
 }
+
+export async function completeCustomerJob(req, res) {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({ status: "error", message: "Only customers can complete jobs" });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE jobs
+      SET status = 'completed', updated_at = NOW()
+      WHERE id = $1
+        AND customer_id = $2
+        AND status = 'in_progress'
+        AND preferred_worker_id IS NOT NULL
+      RETURNING id, status, preferred_worker_id, updated_at
+      `,
+      [req.params.jobId, req.user.id],
+    );
+
+    if (!result.rows.length) {
+      return res.status(400).json({
+        status: "error",
+        message: "Only an in-progress job with a selected worker can be marked complete",
+      });
+    }
+
+    return res.json({ status: "success", job: result.rows[0] });
+  } catch (error) {
+    console.error("Complete customer job error:", error);
+    return res.status(500).json({ status: "error", message: "Unable to complete this job" });
+  }
+}

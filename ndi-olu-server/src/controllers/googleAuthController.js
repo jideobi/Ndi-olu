@@ -4,6 +4,19 @@ import pool from "../config/database.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+async function ensureWorkerProfile(user) {
+  if (user.role !== "worker") return;
+
+  await pool.query(
+    `
+    INSERT INTO worker_profiles (user_id)
+    VALUES ($1)
+    ON CONFLICT (user_id) DO NOTHING
+    `,
+    [user.id],
+  );
+}
+
 function generateToken(user) {
   return jwt.sign(
     {
@@ -94,6 +107,8 @@ export async function googleLogin(req, res) {
         });
       }
 
+      await ensureWorkerProfile(user);
+
       const token = generateToken(user);
 
       return res.json({
@@ -160,6 +175,8 @@ export async function googleLogin(req, res) {
 
       const linkedUser = updatedUser.rows[0];
 
+      await ensureWorkerProfile(linkedUser);
+
       const token = generateToken(linkedUser);
 
       return res.json({
@@ -214,6 +231,8 @@ export async function googleLogin(req, res) {
     );
 
     const user = newUser.rows[0];
+
+    await ensureWorkerProfile(user);
 
     const token = generateToken(user);
 

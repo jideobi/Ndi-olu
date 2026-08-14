@@ -1,7 +1,26 @@
-import { ArrowUpRight } from "lucide-react";
+import {
+  ArrowUpRight,
+  Hammer,
+  Paintbrush,
+  Snowflake,
+  Wrench,
+  Zap,
+} from "lucide-react";
+
+const serviceIcons = {
+  electrical: Zap,
+  plumbing: Wrench,
+  cleaning: Wrench,
+  painting: Paintbrush,
+  carpentry: Hammer,
+  tiling: Hammer,
+  "air-conditioning": Snowflake,
+  "generator-repair": Wrench,
+};
 
 function ServiceCard({ service }) {
-  const { name, slug, description, Icon } = service;
+  const { name, slug, description } = service;
+  const Icon = serviceIcons[slug] || Wrench;
 
   return (
     <a

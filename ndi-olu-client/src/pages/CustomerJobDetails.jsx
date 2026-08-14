@@ -27,6 +27,10 @@ function CustomerJobDetails() {
     const [proposals, setProposals] = useState([]);
     const [proposalsLoading, setProposalsLoading] = useState(true);
     const [proposalsError, setProposalsError] = useState("");
+    const [completing, setCompleting] = useState(false);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState("");
+    const [reviewMessage, setReviewMessage] = useState("");
 
     useEffect(() => {
         async function loadJob() {
@@ -331,6 +335,39 @@ function CustomerJobDetails() {
         }
     }
 
+    async function completeJob() {
+        try {
+            setCompleting(true);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/complete`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "Unable to mark this job complete.");
+            setJob((current) => ({ ...current, status: "completed" }));
+        } catch (completionError) {
+            alert(completionError.message);
+        } finally {
+            setCompleting(false);
+        }
+    }
+
+    async function submitReview(event) {
+        event.preventDefault();
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reviews/jobs/${jobId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "Unable to save your review.");
+            setReviewMessage("Thanks — your review has been saved.");
+        } catch (reviewError) {
+            setReviewMessage(reviewError.message);
+        }
+    }
+
     if (loading) {
         return (
             <DashboardLayout>
@@ -425,6 +462,30 @@ function CustomerJobDetails() {
                     </span>
                 </div>
             </section>
+
+            {job.status !== "open" && proposals.find((proposal) => proposal.status === "accepted") && (
+                <section className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+                    <div>
+                        <p className="font-extrabold text-emerald-800">You selected {proposals.find((proposal) => proposal.status === "accepted").worker_name}.</p>
+                        <p className="mt-1 text-sm leading-6 text-emerald-700">Use the job conversation to coordinate the work and keep a record of agreements.</p>
+                    </div>
+                    <Link to={`/messages?jobId=${jobId}`} className="mt-4 inline-flex w-fit rounded-xl bg-ndi-forest px-4 py-2.5 text-sm font-bold text-white hover:bg-ndi-forest-dark sm:mt-0">Message worker</Link>
+                </section>
+            )}
+
+            {job.status === "in_progress" && (
+                <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+                    <div><h2 className="font-extrabold text-slate-950">Work completed?</h2><p className="mt-1 text-sm leading-6 text-slate-500">Mark this job complete once you are satisfied with the work.</p></div>
+                    <button type="button" onClick={completeJob} disabled={completing} className="mt-4 rounded-xl bg-ndi-forest px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:mt-0">{completing ? "Marking complete..." : "Mark work complete"}</button>
+                </section>
+            )}
+
+            {job.status === "completed" && (
+                <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+                    <h2 className="text-lg font-extrabold text-slate-950">Rate the completed work</h2>
+                    {reviewMessage ? <p className="mt-3 text-sm font-semibold text-emerald-700">{reviewMessage}</p> : <form onSubmit={submitReview} className="mt-4 space-y-4"><label className="block text-sm font-bold text-slate-700">Rating <select value={reviewRating} onChange={(event) => setReviewRating(Number(event.target.value))} className="ml-3 rounded-lg border border-slate-200 px-3 py-2">{[5,4,3,2,1].map((rating) => <option key={rating} value={rating}>{rating} star{rating === 1 ? "" : "s"}</option>)}</select></label><textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Share a short review (optional)" className="min-h-24 w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-ndi-forest" /><button type="submit" className="rounded-xl bg-ndi-forest px-4 py-2.5 text-sm font-bold text-white">Submit review</button></form>}
+                </section>
+            )}
 
             {/* Main content */}
             <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">

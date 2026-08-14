@@ -14,6 +14,8 @@ import AvailableJobs from "../pages/AvailableJobs";
 import WorkerDashboard from "../pages/WorkerDashboard";
 import WorkerJobDetails from "../pages/WorkerJobDetails";
 import WorkerProposals from "../pages/WorkerProposals";
+import WorkerProfileSetup from "../pages/WorkerProfileSetup";
+import Messages from "../pages/Messages";
 
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -94,6 +96,15 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/worker-profile"
+        element={
+          <ProtectedRoute>
+            <WorkerProfileSetup />
+          </ProtectedRoute>
+        }
+      />
+
 
       <Route
         path="/worker-jobs/:id"
@@ -108,6 +119,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WorkerProposals />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Messages />
           </ProtectedRoute>
         }
       />

@@ -40,6 +40,11 @@ function DashboardLayout({ children }) {
           icon: BriefcaseBusiness,
         },
         {
+          label: "My Profile",
+          to: "/worker-profile",
+          icon: UserRound,
+        },
+        {
           label: "Messages",
           to: "/messages",
           icon: MessageSquare,
@@ -69,11 +74,6 @@ function DashboardLayout({ children }) {
       ];
 
   const secondaryItems = [
-    {
-      label: "Profile",
-      to: "/profile",
-      icon: UserRound,
-    },
     {
       label: "Settings",
       to: "/settings",
@@ -253,7 +253,7 @@ function DashboardLayout({ children }) {
             </button>
 
             <Link
-              to="/profile"
+              to={isWorker ? "/worker-profile" : "/profile"}
               className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-slate-50"
             >
               <div className="grid h-9 w-9 place-items-center rounded-full bg-ndi-forest text-xs font-extrabold text-white">

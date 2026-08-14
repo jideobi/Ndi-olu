@@ -1,9 +1,9 @@
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
   MapPin,
   MessageCircle,
-  Search,
   ShieldCheck,
   Sparkles,
   Zap,
@@ -12,7 +12,6 @@ import Footer from "../components/layout/Footer";
 import Navbar from "../components/layout/Navbar";
 import Button from "../components/ui/Button";
 import ServiceCard from "../components/workers/ServiceCard";
-import { services } from "../data/services";
 
 const steps = [
   {
@@ -51,6 +50,29 @@ const trustPillars = [
 ];
 
 function Home() {
+  const [services, setServices] = useState([]);
+  const [servicesError, setServicesError] = useState("");
+
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/services`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Unable to load services.");
+        }
+
+        setServices(data.services || []);
+      } catch (error) {
+        console.error("Home services error:", error);
+        setServicesError("Services are unavailable right now. Please try again shortly.");
+      }
+    }
+
+    loadServices();
+  }, []);
+
   return (
     <main id="top" className="min-h-screen bg-ndi-sand text-ndi-ink">
       <Navbar />
@@ -254,9 +276,13 @@ function Home() {
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((service) => (
-              <ServiceCard key={service.slug} service={service} />
+              <ServiceCard key={service.id || service.slug} service={service} />
             ))}
           </div>
+
+          {servicesError && (
+            <p className="mt-6 text-sm font-medium text-red-600">{servicesError}</p>
+          )}
         </div>
       </section>
 

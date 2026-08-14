@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { CheckCircle2, UserRound, Wrench } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../components/layout/AuthLayout";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -9,6 +10,8 @@ import Input from "../components/ui/Input";
 
 function SignUp() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [role, setRole] = useState(
     searchParams.get("role") === "worker" ? "worker" : "client",
   );
@@ -63,16 +66,20 @@ function SignUp() {
         );
       }
 
-      console.log("Registration successful:", data);
+      login(data);
 
       setMessage(
         `Your ${role === "worker" ? "worker" : "customer"
         } account has been created successfully.`,
       );
 
-      // Next step:
-      // save token through AuthContext
-      // redirect user
+      setTimeout(() => {
+        navigate(
+          data.user?.role === "worker"
+            ? "/worker-profile"
+            : "/customer-dashboard",
+        );
+      }, 500);
 
     } catch (error) {
       console.error("Registration error:", error);
@@ -113,13 +120,17 @@ function SignUp() {
         );
       }
 
-      console.log("Google authentication successful:", data);
+      login(data);
 
       setMessage("Google account connected successfully.");
 
-      // Next step:
-      // save token through AuthContext
-      // redirect user
+      setTimeout(() => {
+        navigate(
+          data.user?.role === "worker"
+            ? "/worker-profile"
+            : "/customer-dashboard",
+        );
+      }, 500);
 
     } catch (error) {
       console.error("Google authentication error:", error);

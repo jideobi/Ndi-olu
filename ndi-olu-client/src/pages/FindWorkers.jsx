@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,8 +10,6 @@ import Footer from "../components/layout/Footer";
 import Navbar from "../components/layout/Navbar";
 import Button from "../components/ui/Button";
 import WorkerCard from "../components/workers/WorkerCard";
-import { services } from "../data/services";
-import { workers } from "../data/workers";
 
 const locations = [
   { value: "enugu-metropolis", label: "All Enugu metropolis" },
@@ -38,58 +36,55 @@ const locations = [
 function FindWorkers() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(searchParams.get("search") ?? "");
   const [service, setService] = useState(searchParams.get("service") ?? "");
   const [location, setLocation] = useState(
     searchParams.get("location") ?? "enugu-metropolis",
   );
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get("verified") === "true");
+  const [services, setServices] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const queryString = searchParams.toString();
 
-  const filteredWorkers = useMemo(() => {
-  const searchTerm = keyword.trim().toLowerCase();
-  const normalizedLocation = location
-    .replaceAll("-", " ")
-    .toLowerCase();
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError("");
+        const [workersResponse, servicesResponse] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/workers?${queryString}`),
+          fetch(`${import.meta.env.VITE_API_URL}/api/services`),
+        ]);
+        const workersData = await workersResponse.json();
+        const servicesData = await servicesResponse.json();
 
-  return workers.filter((worker) => {
-    const searchableText = [
-      worker.name,
-      worker.service,
-      worker.bio,
-      ...(worker.skills ?? []),
-    ]
-      .join(" ")
-      .toLowerCase();
+        if (!workersResponse.ok) throw new Error(workersData.message || "Unable to load professionals.");
+        if (!servicesResponse.ok) throw new Error(servicesData.message || "Unable to load services.");
 
-    const matchesSearch =
-      !searchTerm || searchableText.includes(searchTerm);
+        setWorkers(workersData.workers || []);
+        setServices(servicesData.services || []);
+      } catch (loadError) {
+        console.error("Find workers error:", loadError);
+        setError(loadError.message || "Unable to load professionals.");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-    const matchesService =
-      !service || worker.serviceSlug === service;
-
-    const matchesLocation =
-      location === "enugu-metropolis" ||
-      worker.area.toLowerCase().includes(normalizedLocation);
-
-    const matchesVerification =
-      !verifiedOnly || worker.verified;
-
-    return (
-      matchesSearch &&
-      matchesService &&
-      matchesLocation &&
-      matchesVerification
-    );
-  });
-}, [keyword, service, location, verifiedOnly]);
+    loadData();
+  }, [queryString]);
 
   function updateSearch(event) {
     event.preventDefault();
 
     const nextParams = {};
 
+    if (keyword.trim()) nextParams.search = keyword.trim();
     if (service) nextParams.service = service;
     if (location) nextParams.location = location;
+    if (verifiedOnly) nextParams.verified = "true";
 
     setSearchParams(nextParams);
   }
@@ -217,8 +212,9 @@ function FindWorkers() {
             </p>
 
             <h2 className="mt-2 text-2xl font-extrabold tracking-[-0.04em]">
-              {filteredWorkers.length} professional
-              {filteredWorkers.length === 1 ? "" : "s"} found
+              {loading
+                ? "Loading professionals..."
+                : `${workers.length} professional${workers.length === 1 ? "" : "s"} found`}
             </h2>
           </div>
 
@@ -231,9 +227,13 @@ function FindWorkers() {
           </button>
         </div>
 
-        {filteredWorkers.length > 0 ? (
+        {error ? (
+          <div className="mt-8 rounded-ndi-card border border-red-200 bg-red-50 px-6 py-8 text-center text-sm font-medium text-red-700">
+            {error}
+          </div>
+        ) : workers.length > 0 ? (
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
-            {filteredWorkers.map((worker) => (
+            {workers.map((worker) => (
               <WorkerCard key={worker.id} worker={worker} />
             ))}
           </div>
@@ -287,8 +287,7 @@ function FindWorkers() {
 
         <p className="mt-6 flex items-center gap-2 text-xs leading-5 text-slate-500">
           <CheckCircle2 size={15} className="shrink-0 text-ndi-green" />
-          These profiles are development data. Real profile information will
-          come from verified Ndi-Olu worker accounts.
+          These profiles are from approved Ndi-Olu worker accounts.
         </p>
       </section>
 

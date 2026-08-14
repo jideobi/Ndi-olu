@@ -13,6 +13,8 @@ import proposalRoutes from "./routes/proposalRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import workerRoutes from "./routes/workerRoutes.js";
 import workerProfileRoutes from "./routes/workerProfileRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 
 dotenv.config();
 
@@ -55,6 +57,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workerRoutes);
 
 app.use("/api/worker-profile", workerProfileRoutes);
+
+app.use("/api/messages", messageRoutes);
+
+app.use("/api/reviews", reviewRoutes);
 
 // -----------------------------------------
 // Root

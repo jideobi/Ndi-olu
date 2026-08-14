@@ -8,6 +8,7 @@ import {
     MapPin,
     Search,
     UserCheck,
+    UserRound,
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -119,13 +120,22 @@ function WorkerDashboard() {
                         </p>
                     </div>
 
-                    <Link
-                        to="/available-jobs"
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-ndi-forest px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-ndi-forest-dark"
-                    >
-                        <Search size={18} />
-                        Find available jobs
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                        <Link
+                            to="/worker-profile"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-ndi-forest px-5 py-3 text-sm font-bold text-ndi-forest transition hover:bg-emerald-50"
+                        >
+                            <UserRound size={18} />
+                            My profile
+                        </Link>
+                        <Link
+                            to="/available-jobs"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-ndi-forest px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-ndi-forest-dark"
+                        >
+                            <Search size={18} />
+                            Find available jobs
+                        </Link>
+                    </div>
                 </div>
             </section>
 
