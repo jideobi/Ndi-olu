@@ -136,3 +136,81 @@ export async function getConversations(req, res) {
     return res.status(500).json({ status: "error", message: "Unable to load conversations" });
   }
 }
+
+export async function getUnreadMessageCount(req, res) {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `
+      SELECT COUNT(*)::int AS unread_count
+      FROM job_messages m
+      INNER JOIN jobs j
+        ON j.id = m.job_id
+      INNER JOIN worker_profiles wp
+        ON wp.id = j.preferred_worker_id
+      WHERE m.sender_id <> $1
+        AND m.read_at IS NULL
+        AND (
+          j.customer_id = $1
+          OR wp.user_id = $1
+        )
+        AND j.status IN ('in_progress', 'completed')
+      `,
+      [userId],
+    );
+
+    return res.json({
+      status: "success",
+      unreadCount: result.rows[0]?.unread_count || 0,
+    });
+  } catch (error) {
+    console.error("Get unread message count error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to get unread message count",
+    });
+  }
+}
+
+export async function markJobMessagesAsRead(req, res) {
+  try {
+    const { jobId } = req.params;
+
+    const job = await getAccessibleJob(jobId, req.user);
+
+    if (!job) {
+      return res.status(403).json({
+        status: "error",
+        message: "You cannot access this conversation",
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE job_messages
+      SET read_at = NOW()
+      WHERE job_id = $1
+        AND sender_id <> $2
+        AND read_at IS NULL
+      `,
+      [jobId, req.user.id],
+    );
+
+    return res.json({
+      status: "success",
+      message: "Messages marked as read",
+    });
+  } catch (error) {
+    console.error(
+      "Mark messages as read error:",
+      error,
+    );
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to mark messages as read",
+    });
+  }
+}

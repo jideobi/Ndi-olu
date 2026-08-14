@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import {
   Bell,
@@ -17,61 +17,117 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 function DashboardLayout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   const isWorker = user?.role === "worker";
 
+  useEffect(() => {
+    if (!token) {
+      setUnreadMessageCount(0);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadUnreadMessageCount() {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/messages/unread-count`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load unread messages.",
+          );
+        }
+
+        if (!cancelled) {
+          setUnreadMessageCount(
+            Number(data.unreadCount || 0),
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Unread message count error:",
+          error,
+        );
+      }
+    }
+
+    loadUnreadMessageCount();
+
+    // Check for new messages every 15 seconds.
+    const interval = setInterval(
+      loadUnreadMessageCount,
+      15000,
+    );
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [token]);
+
   const navigationItems = isWorker
     ? [
-        {
-          label: "Dashboard",
-          to: "/worker-dashboard",
-          icon: LayoutDashboard,
-        },
-        {
-          label: "Find Jobs",
-          to: "/available-jobs",
-          icon: Search,
-        },
-        {
-          label: "My Proposals",
-          to: "/worker-proposals",
-          icon: BriefcaseBusiness,
-        },
-        {
-          label: "My Profile",
-          to: "/worker-profile",
-          icon: UserRound,
-        },
-        {
-          label: "Messages",
-          to: "/messages",
-          icon: MessageSquare,
-        },
-      ]
+      {
+        label: "Dashboard",
+        to: "/worker-dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        label: "Find Jobs",
+        to: "/available-jobs",
+        icon: Search,
+      },
+      {
+        label: "My Proposals",
+        to: "/worker-proposals",
+        icon: BriefcaseBusiness,
+      },
+      {
+        label: "My Profile",
+        to: "/worker-profile",
+        icon: UserRound,
+      },
+      {
+        label: "Messages",
+        to: "/messages",
+        icon: MessageSquare,
+      },
+    ]
     : [
-        {
-          label: "Dashboard",
-          to: "/customer-dashboard",
-          icon: LayoutDashboard,
-        },
-        {
-          label: "Find Workers",
-          to: "/find-workers",
-          icon: Search,
-        },
-        {
-          label: "My Jobs",
-          to: "/customer-jobs",
-          icon: BriefcaseBusiness,
-        },
-        {
-          label: "Messages",
-          to: "/messages",
-          icon: MessageSquare,
-        },
-      ];
+      {
+        label: "Dashboard",
+        to: "/customer-dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        label: "Find Workers",
+        to: "/find-workers",
+        icon: Search,
+      },
+      {
+        label: "My Jobs",
+        to: "/customer-jobs",
+        icon: BriefcaseBusiness,
+      },
+      {
+        label: "Messages",
+        to: "/messages",
+        icon: MessageSquare,
+      },
+    ];
 
   const secondaryItems = [
     {
@@ -100,9 +156,8 @@ function DashboardLayout({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:translate-x-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         {/* Logo */}
         <div className="flex h-20 items-center justify-between border-b border-slate-100 px-6">
@@ -154,29 +209,38 @@ function DashboardLayout({ children }) {
             Workspace
           </p>
 
-          <div className="mt-3 space-y-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
 
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
-                      isActive
-                        ? "bg-emerald-50 text-ndi-forest"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-ndi-forest"
-                    }`
-                  }
-                >
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setIsSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive
+                    ? "bg-emerald-50 text-ndi-forest"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-ndi-forest"
+                  }`
+                }
+              >
+                <div className="relative">
                   <Icon size={19} />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
+
+                  {item.label === "Messages" &&
+                    unreadMessageCount > 0 && (
+                      <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-ndi-orange px-1 text-[10px] font-extrabold text-white">
+                        {unreadMessageCount > 99
+                          ? "99+"
+                          : unreadMessageCount}
+                      </span>
+                    )}
+                </div>
+
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
 
           <p className="mt-8 px-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
             Account
@@ -192,10 +256,9 @@ function DashboardLayout({ children }) {
                   to={item.to}
                   onClick={() => setIsSidebarOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
-                      isActive
-                        ? "bg-emerald-50 text-ndi-forest"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-ndi-forest"
+                    `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${isActive
+                      ? "bg-emerald-50 text-ndi-forest"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-ndi-forest"
                     }`
                   }
                 >
